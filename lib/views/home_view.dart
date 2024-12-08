@@ -12,6 +12,7 @@ class HomeView extends StatefulWidget {
 class _HomeViewState extends State<HomeView> {
   Position? currentLocation;
   GoogleMapController? googleMapController;
+  List<LatLng> userPositionPolyline = [];
 
   @override
   void initState() {
@@ -24,15 +25,17 @@ class _HomeViewState extends State<HomeView> {
     if (appPermission) {
       final getGPSPermission = await isGPSServiceEnable();
       if (getGPSPermission) {
-        // Position position = await Geolocator.getCurrentPosition();
         Geolocator.getPositionStream(
                 locationSettings:
                     const LocationSettings(timeLimit: Duration(seconds: 10)))
             .listen(
           (position) {
-            currentLocation = position;
-            setState(() {});
-            getUserCurrentLocation();
+            setState(() {
+              currentLocation = position;
+              userPositionPolyline
+                  .add(LatLng(position.latitude, position.longitude));
+            });
+            moveToCurrentLocation();
           },
         );
       } else {
@@ -72,7 +75,7 @@ class _HomeViewState extends State<HomeView> {
     return await Geolocator.isLocationServiceEnabled();
   }
 
-  void getUserCurrentLocation() {
+  void moveToCurrentLocation() {
     googleMapController?.animateCamera(
       CameraUpdate.newCameraPosition(
         CameraPosition(
@@ -109,9 +112,23 @@ class _HomeViewState extends State<HomeView> {
               },
               markers: <Marker>{
                 Marker(
-                  markerId: const MarkerId('User Current Location'),
-                  position: LatLng(
-                      currentLocation!.latitude, currentLocation!.longitude),
+                    markerId: const MarkerId('User Current Location ID'),
+                    position: LatLng(
+                        currentLocation!.latitude, currentLocation!.longitude),
+                    infoWindow: InfoWindow(
+                      title: 'My Current Location',
+                      snippet:
+                          '${currentLocation!.latitude} , ${currentLocation!.longitude}',
+                    ))
+              },
+              polylines: <Polyline>{
+                Polyline(
+                  polylineId: const PolylineId('User Current Polyline ID'),
+                  points: userPositionPolyline,
+                  color: Colors.blue,
+                  jointType: JointType.round,
+                  startCap: Cap.roundCap,
+                  endCap: Cap.roundCap,
                 )
               },
             ),
