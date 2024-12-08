@@ -24,10 +24,17 @@ class _HomeViewState extends State<HomeView> {
     if (appPermission) {
       final getGPSPermission = await isGPSServiceEnable();
       if (getGPSPermission) {
-        Position position = await Geolocator.getCurrentPosition();
-        currentLocation = position;
-        setState(() {});
-        getUserCurrentLocation();
+        // Position position = await Geolocator.getCurrentPosition();
+        Geolocator.getPositionStream(
+                locationSettings:
+                    const LocationSettings(timeLimit: Duration(seconds: 10)))
+            .listen(
+          (position) {
+            currentLocation = position;
+            setState(() {});
+            getUserCurrentLocation();
+          },
+        );
       } else {
         Geolocator.openLocationSettings();
       }
@@ -82,18 +89,32 @@ class _HomeViewState extends State<HomeView> {
       appBar: AppBar(
         title: const Text('Real-Time Location Tracker'),
       ),
-      body: GoogleMap(
-        initialCameraPosition: const CameraPosition(
-          zoom: 8,
-          target: LatLng(
-            24.27037857877728,
-            90.27157335388725,
-          ),
-        ),
-        onMapCreated: (controller) {
-          googleMapController = controller;
-        },
-      ),
+      body: currentLocation == null
+          ? Center(
+              child: Image.asset(
+                'assets/images/map_icon.png',
+                width: 120,
+              ),
+            )
+          : GoogleMap(
+              initialCameraPosition: const CameraPosition(
+                zoom: 8,
+                target: LatLng(
+                  24.27037857877728,
+                  90.27157335388725,
+                ),
+              ),
+              onMapCreated: (controller) {
+                googleMapController = controller;
+              },
+              markers: <Marker>{
+                Marker(
+                  markerId: const MarkerId('User Current Location'),
+                  position: LatLng(
+                      currentLocation!.latitude, currentLocation!.longitude),
+                )
+              },
+            ),
     );
   }
 }
